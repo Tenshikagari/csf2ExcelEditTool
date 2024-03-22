@@ -3,7 +3,8 @@ using OfficeOpenXml;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
- 
+using INIProcess;
+using OfficeOpenXml.ConditionalFormatting;
 
 static public class ExcelCsfDataTool
 {
@@ -20,7 +21,7 @@ static public class ExcelCsfDataTool
 
         FileInfo fileInfo = new FileInfo(path);
 
-        Dictionary<string, ExcelWorksheet> csfTypeDict = new Dictionary<string, ExcelWorksheet>(); // 仅仅用来分类罢了
+        Dictionary<string, ExcelWorksheet> csfTypeDict = new Dictionary<string, ExcelWorksheet>(); // 仅仅用来分类罢了,根据excel的sheet进行分类
 
         using (ExcelPackage excel = new ExcelPackage(fileInfo))
         {
@@ -81,6 +82,10 @@ static public class ExcelCsfDataTool
 
     static public CSFData GetCsfDataFromExcel(string excelPath )
     {
+        string currentPath = System.IO.Directory.GetCurrentDirectory();
+        string INIPath = currentPath + @"\path.INI";
+        string DefaultdiffPath = currentPath + @"\csf.diff";
+        string diffPath = INIPorcess.PathReader("diffPath", DefaultdiffPath, INIPath);
 
         if (!File.Exists(excelPath))
         {
@@ -95,28 +100,45 @@ static public class ExcelCsfDataTool
 
         CSFData csfData = new CSFData();
 
-
+        string diffContext="";
         // 遍历表格 并且获得表格名
         // 遍历表格里面的内容 并且拼接表格名+name 获得那个
         using (ExcelPackage excel = new ExcelPackage(fileInfo))
         {
+            
+            
             foreach (ExcelWorksheet workSheet in excel.Workbook.Worksheets)  // 读取每一个子表
             {
+                diffContext += "[" + workSheet.ToString() + "]" + "\n";//diff记录子表表头
                 string tabelName = workSheet.Name;  // 表名
                 int maxRow = workSheet.Dimension.End.Row; // 最后一行  
 
                 for (int i = 1; i < maxRow +1; i++)  // 这里是最后一行
                 {
+                    string labelName = GetFullLableNameKey(tabelName, workSheet.GetValue(i, 1).ToString());
+                    string labelContext = workSheet.GetValue(i, 2).ToString();
                     csfData.labelDataList.Add(new LabelData()
                     {
                         lableName = GetFullLableNameKey(tabelName, workSheet.GetValue(i, 1).ToString()),
                         labelContext = workSheet.GetValue(i, 2).ToString()
                     });
+                        
+                        diffContext += labelName + ":" + labelContext + "\n";//拼接表中内容
+                    //File.WriteAllText(diffPath, labelName + ":" + labelContext + "\n");//输出diff，本次读取内容
                 }
+
             }
-        }
- 
-        return csfData;
+            
+                using (StreamWriter diff = new StreamWriter(diffPath)) {//写入
+                    diff.WriteLine(diffContext);
+
+                }
+
+
+            }
+            
+
+            return csfData;
     }
 
     static string GetFullLableNameKey(string tableName,string keyName)

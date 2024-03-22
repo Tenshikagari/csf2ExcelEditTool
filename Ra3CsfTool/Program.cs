@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using INIProcess;
 
 namespace Ra3CsfTool
 {
@@ -30,15 +31,36 @@ namespace Ra3CsfTool
  
             string currentPath = System.IO.Directory.GetCurrentDirectory();
 
- 
 
 
-            string csfPath = currentPath + @"\GameStrings.csf";
-            string excelPath = currentPath + @"\csf.xlsx";
+            string INIPath=currentPath+@"\path.INI";   //INI路径
+            string DefaultcsfPath = currentPath + @"\GameStrings.csf";
+            string DefaultexcelPath = currentPath + @"\csf.xlsx";
+            string DefaultdiffPath = currentPath + @"\csf.diff";
+            Console.WriteLine(INIPath);
+            if(!(File.Exists(INIPath)))//检测INI文件是否存在
+            {
+                Console.WriteLine("INI File did not exist.Will Generate an INI for you");//不存在则创建
+                INIPorcess.INIGenerate(DefaultcsfPath,DefaultexcelPath,DefaultdiffPath,INIPath);
+                return;
+            }
+            if (INIPorcess.SectionCheck("Parameters", INIPath) == false)//检查INI格式
+            {
+                return;
+            }
+            string csfPath = INIPorcess.PathReader("csfPath", DefaultcsfPath, INIPath);//读取csf路径
+            string excelPath = INIPorcess.PathReader("excelPath", DefaultexcelPath, INIPath);//读取excel路径
+            string diffPath = INIPorcess.PathReader("diffPath", DefaultdiffPath, INIPath);
+            string csfName = System.IO.Path.GetFileName(csfPath);
+            string workDict = csfPath.Remove(csfPath.Length-1-csfName.Length);
+            Console.WriteLine("CSF:" + csfPath);
+            Console.WriteLine("Excel:"+excelPath);
+            Console.WriteLine("Diff:" + diffPath);
+
 
 
             print(tip);
-            print("当前的工作路径是:" + currentPath + "\n");
+            print("当前的工作路径是:" + workDict + "\n");
             while (true)
             {
 
@@ -48,7 +70,7 @@ namespace Ra3CsfTool
 
                 Console.Clear();
                 print(tip);
-                print("当前的工作路径是:" + currentPath + "\n");
+                print("当前的工作路径是:" + workDict + "\n");
 
                 switch (input)
                 {
